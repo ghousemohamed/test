@@ -20,7 +20,8 @@ defmodule Test.MixProject do
   def application do
     [
       mod: {Test.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools],
+      env: [key: "Hello World Key!"]
     ]
   end
 

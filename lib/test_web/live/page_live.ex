@@ -3,19 +3,17 @@ defmodule TestWeb.PageLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    send(self(), {:test, 1})
-    {:ok, assign(socket, query: "", results: %{})}
-  end
-
-  def handle_info({:test, params}, socket) do
-    IO.inspect params
-    Process.send_after(self(), {:test, params+1}, 100)
-    {:noreply, socket}
+    {:ok, assign(socket, query: "", results: %{}, items: [1, 2, 3, 4, 5, 6])}
   end
 
   @impl true
   def handle_event("suggest", %{"q" => query}, socket) do
     {:noreply, assign(socket, results: search(query), query: query)}
+  end
+
+  def handle_info(:catch_event, socket) do
+    # IO.inspect :ets.lookup(:buckets_registry, "foo")
+    {:noreply, socket}
   end
 
   @impl true
