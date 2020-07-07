@@ -3,24 +3,24 @@ TARGET_MIX_ENV="prod"
 
 BUILD_CMD="mix"
 RELEASE_CMD="mix"
-BRANCH="ci-cd"
+BRANCH="master"
 USING_DISTILLERY=true
 
 BUILD_HOST="172.105.49.38"
-BUILD_USER="root"
-BUILD_AT="/root/app_build"
+BUILD_USER="deploy"
+BUILD_AT="/home/deploy/app_build"
 
 STAGING_HOSTS="172.105.49.38"
-STAGING_USER="root"
+STAGING_USER="deploy"
 
 PRODUCTION_HOSTS="172.105.49.38"
-PRODUCTION_USER="root"
-DELIVER_TO="/root/app_release"
+PRODUCTION_USER="deploy"
+DELIVER_TO="/home/deploy/app_release"
 
 AUTO_VERSION=commit-count+git-revision+branch-unless-master
 
 pre_erlang_get_and_update_deps() {
-  local _prod_secret_path="/root/prod.secret.exs"
+  local _prod_secret_path="/home/deploy/prod.secret.exs"
   if [ "$TARGET_MIX_ENV" = "prod" ]; then
     __sync_remote "
       ln -sfn '$_prod_secret_path' '$BUILD_AT/config/prod.secret.exs'
