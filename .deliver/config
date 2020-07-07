@@ -1,0 +1,77 @@
+APP="test"
+TARGET_MIX_ENV="prod"
+
+BUILD_CMD="mix"
+RELEASE_CMD="mix"
+BRANCH="ci-cd"
+USING_DISTILLERY=true
+
+BUILD_HOST=""
+BUILD_USER="root"
+BUILD_AT="/root/app_build"
+
+STAGING_HOSTS=""
+STAGING_USER="root"
+
+PRODUCTION_HOSTS=""
+PRODUCTION_USER="root"
+DELIVER_TO="/root/app_release"
+
+AUTO_VERSION=commit-count+git-revision+branch-unless-master
+
+pre_erlang_get_and_update_deps() {
+  local _prod_secret_path="/root/prod.secret.exs"
+  if [ "$TARGET_MIX_ENV" = "prod" ]; then
+    __sync_remote "
+      ln -sfn '$_prod_secret_path' '$BUILD_AT/config/prod.secret.exs'
+    "
+  fi
+}
+
+# Source environment variables and build static assets
+pre_erlang_clean_compile() {
+  status "Build static assets"
+  __sync_remote "
+    set -e
+    cd '$BUILD_AT'
+    mkdir -p priv/static
+    APP='$APP' MIX_ENV='$TARGET_MIX_ENV' $MIX_CMD phx.digest.clean $SILENCE
+    npm install --prefix assets
+    npm run deploy --prefix assets
+    APP='$APP' MIX_ENV='$TARGET_MIX_ENV' $MIX_CMD phx.digest $SILENCE
+    mix release.init
+  "
+}
+
+# symlink static assets to the release location after deploying a release
+symlink_static(){
+  status "Symlinking statics"
+  __sync_remote "
+    set -e
+    cp -r $BUILD_AT/priv/static $DELIVER_TO/$APP/releases/$VERSION/static
+    ln -sfn $DELIVER_TO/$APP/releases/$VERSION/static $DELIVER_TO
+  "
+}
+
+post_extract_release_archive() {
+  symlink_static
+}
+
+post_upgrade_release() {
+  symlink_static
+}
+
+# Temporary workaround from https://github.com/edeliver/edeliver/issues/314#issuecomment-522151151
+# start_erl.data is not being upgraded when new release is deployed
+# should not be necessary once a new distillery version is released (> 2.1.1):
+# https://github.com/bitwalker/distillery/issues/729
+post_extract_release_archive() {
+  status "Removing start_erl.data"
+  __remote "
+    [ -f ~/.profile ] && source ~/.profile
+    set -e
+    mkdir -p $DELIVER_TO/$APP/var $SILENCE
+    cd $DELIVER_TO/$APP/var $SILENCE
+    rm -f start_erl.data $SILENCE
+  "
+}
